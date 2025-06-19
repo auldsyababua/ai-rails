@@ -213,5 +213,23 @@ This section serves as a living document for potential improvements and ideas.
 * **Dynamic Tool Description Injection (Refined):** Instead of hardcoding all tool descriptions in every agent prompt, the UI/backend could dynamically inject *only the relevant tool definitions* (from templates/mcp\_definitions/) into the system prompt for the active agent, further minimizing context window usage.  
 * **Overseer Agent Detailed Explanation (New):**  
   * Refer to docs/overseer\_agent\_details.md for a comprehensive explanation of the Overseer Agent's architecture, anomaly detection strategies, context management (summarization), and UI integration (alert system, interruption mechanism). This will mostly recycle the detailed explanation provided in previous turns.
+* **Centralized & Granular Tool Configuration (Enhanced `templates/mcp_definitions/`):**
+  * **Goal:** To establish a single, highly maintainable source of truth for defining available tools (MCPs and n8n automations), their access permissions, and agent-specific usage guidance. This eliminates the need to manually update instructions within each agent's system prompt Markdown file whenever a tool is added, modified, or its usage guidance changes.
+  * **Problem Solved:** Prevents scattered and potentially inconsistent tool usage instructions across multiple agent prompt templates, improving maintainability and reducing human error during updates.
+  * **Mechanism:**
+      * **Augmented MCP Definitions:** The JSON files within `templates/mcp_definitions/` will be enhanced to include new top-level fields:
+          * `access_control`: A JSON object defining which `agent_role`s have access to this tool, and their permission level (e.g., `"free_access"` for direct use, `"permissioned_access"` for human-gated approval for sensitive operations like `SecretsMCP` for `ANTHROPIC_API_KEY`).
+          * `agent_specific_guidance`: A JSON object where keys are `agent_role`s and values are Markdown strings providing specific instructions to that agent on *when* and *how* to best formulate a request for this particular tool.
+      * **Backend Logic Refinement (`ai_rails_backend.py`):**
+          * The `ai_rails_backend.py` will read these extended MCP definitions.
+          * When constructing an agent's prompt, it will filter the tool list based on the current `agent_role`'s `access_control` for each tool.
+          * For each accessible tool, it will dynamically inject not just the `tool_name`, `description`, and `request_schema`, but also the `agent_specific_guidance` relevant to the active agent into the "Available Tools" section of the prompt.
+          * The backend will then enforce the `free_access` vs. `permissioned_access` logic for tool execution, especially critical for the `SecretsMCP`.
+  * **Benefits:**
+      * **Single Source of Truth:** All tool-related configurations and instructions live in one central place.
+      * **Improved Maintainability:** Adding, modifying, or removing tools (or their usage guidelines) only requires updating their respective JSON definition, not multiple agent Markdown files.
+      * **Enhanced Precision:** Agents receive highly tailored instructions for each tool, based on their specific role and the tool's intended use within that role.
+      * **Scalability:** Easier to manage a growing number of agents and tools.
+* **Integration of 3rd Party AI Code Review Agents:** Explore and implement dedicated MCPs to leverage external AI code review services (e.g., CodeRabbit, Diamond) for enhanced code quality and security analysis, with human-gated approval.
 
 1. ok now can you tell me what i need to change in each agent template to cover the n8n and MCP stuff

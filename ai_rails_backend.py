@@ -20,6 +20,22 @@ LOG_FILE = LOG_DIR / "ai-rails.log"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://10.0.0.2:11434")
 CLAUDE_API_KEY = os.getenv("ANTHROPIC_API_KEY") # Will be retrieved via SecretsMCP
 
+# List of sensitive secrets that require explicit human approval
+SENSITIVE_SECRETS = [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "CLAUDE_API_KEY",
+    "DB_PASSWORD",
+    "DATABASE_PASSWORD",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_ACCESS_KEY_ID",
+    "GITHUB_TOKEN",
+    "GITHUB_PAT",
+    "STRIPE_SECRET_KEY",
+    "SENDGRID_API_KEY",
+    "TWILIO_AUTH_TOKEN",
+]
+
 # Ensure log directory exists
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -159,7 +175,7 @@ def engage_agent(
     """
     log_event("AGENT_ENGAGE", f"Engaging {agent_role} agent.", agent_role=agent_role, session_id=session_id)
 
-    agent_template_path = TEMPLATES_DIR / agent_template_filename
+    agent_template_path = TEMPLATES_DIR / "agent" / agent_template_filename
     
     # Load all MCP definitions to inject into the agent's prompt
     all_mcp_definitions = load_mcp_definitions()
@@ -227,14 +243,34 @@ def engage_agent(
                           agent_role=agent_role, session_id=session_id, 
                           details={"tool_name": tool_name, "parameters": parameters, "explanation": explanation})
                 
-                print(f"\n--- !!! HUMAN INTERVENTION REQUIRED !!! ---")
-                print(f"The {agent_role} has requested to use a tool:")
-                print(f"Tool Name: {tool_name}")
-                print(f"Explanation: {explanation}")
-                print(f"Raw Request: {json.dumps(parameters, indent=2)}")
+                # Check if this is a sensitive secret request
+                is_sensitive_secret = False
+                if tool_name == "SecretsMCP":
+                    secret_name = parameters.get("secret_name", "")
+                    if secret_name in SENSITIVE_SECRETS:
+                        is_sensitive_secret = True
+                        print(f"\n--- !!! SENSITIVE SECRET REQUEST !!! ---")
+                        print(f"⚠️  The {agent_role} has requested access to a SENSITIVE secret:")
+                        print(f"Secret Name: {secret_name}")
+                        print(f"This secret is classified as SENSITIVE and requires explicit approval.")
+                        print(f"Explanation: {explanation}")
+                    else:
+                        print(f"\n--- HUMAN INTERVENTION REQUIRED ---")
+                        print(f"The {agent_role} has requested secret: {secret_name}")
+                        print(f"Explanation: {explanation}")
+                else:
+                    print(f"\n--- !!! HUMAN INTERVENTION REQUIRED !!! ---")
+                    print(f"The {agent_role} has requested to use a tool:")
+                    print(f"Tool Name: {tool_name}")
+                    print(f"Explanation: {explanation}")
+                    print(f"Raw Request: {json.dumps(parameters, indent=2)}")
 
-                # Get human approval
-                confirm = input("Do you approve this tool request? (yes/no): ").lower().strip()
+                # Get human approval with appropriate prompt
+                if is_sensitive_secret:
+                    confirm = input("Do you approve this SENSITIVE secret request? (yes/no): ").lower().strip()
+                else:
+                    confirm = input("Do you approve this tool request? (yes/no): ").lower().strip()
+                
                 if confirm == "yes":
                     log_event("HUMAN_DECISION", f"Human approved tool request for {tool_name}.", agent_role="Orchestrator", session_id=session_id)
                     print(f"Executing tool: {tool_name}...")
