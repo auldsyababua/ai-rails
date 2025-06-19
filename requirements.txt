@@ -5,6 +5,8 @@
 
 # --- MVP Dependencies ---
 
+# --- MVP Dependencies ---
+
 # FastAPI: Primary web framework for the backend UI and API endpoints.
 # Provides a clean and modern way to build RESTful services.
 fastapi==0.111.0
