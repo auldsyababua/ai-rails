@@ -1,0 +1,20 @@
+{
+    "tool_name": "CodebaseSummaryMCP",
+    "description": "Provides summary or detailed context about the codebase. This MCP can retrieve file contents, list directories, or answer natural language queries about the project structure and specific code elements. It's crucial for understanding the existing project state.",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "A natural language query for specific information or context needed from the codebase (e.g., 'What is the structure of the /src directory?', 'Show me the contents of src/main.py', 'Find all functions related to user authentication')."
+        },
+        "path": {
+          "type": "string",
+          "description": "Optional: A specific file or directory path within the repository to focus the query on. If omitted, the query applies to the root of the project.",
+          "default": "."
+        }
+      },
+      "required": ["query"]
+    },
+    "response_format": "Markdown or text, depending on the query. Will be formatted clearly for LLM consumption."
+  }

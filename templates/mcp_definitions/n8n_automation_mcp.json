@@ -1,0 +1,20 @@
+{
+    "tool_name": "n8n_automation",
+    "description": "Triggers an n8n workflow to perform automated tasks or interact with external services. This can include anything from sending notifications, processing data, or interacting with third-party APIs.",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "workflow_name": {
+          "type": "string",
+          "description": "The name or unique ID of the n8n workflow to trigger. This must correspond to an existing workflow in your n8n instance."
+        },
+        "data": {
+          "type": "object",
+          "description": "Optional: A JSON object containing data to be passed as input to the n8n workflow. The structure of this data depends on the specific workflow's expected input.",
+          "additionalProperties": true
+        }
+      },
+      "required": ["workflow_name"]
+    },
+    "response_format": "JSON detailing the status or output of the n8n workflow execution. Example: {\"status\": \"success\", \"message\": \"Workflow triggered\", \"n8n_response\": {}}"
+  }
