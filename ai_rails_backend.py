@@ -381,6 +381,100 @@ def engage_agent(
         print("Please review the agent's output and decide the next step manually.")
 
 
+# --- Overseer Agent Functions ---
+def invoke_overseer_review(session_id: str, recent_outputs_dir: Path, llm_choice: str = "claude"):
+    """
+    Invoke the Overseer Agent to review recent agent activities.
+    Returns True if any critical issues were found.
+    """
+    log_event("OVERSEER_INVOKED", "Invoking Overseer Agent for routine review.", agent_role="Overseer", session_id=session_id)
+    
+    # Prepare context for the Overseer
+    # Read recent log entries
+    recent_logs = []
+    if LOG_FILE.exists():
+        with open(LOG_FILE, "r") as f:
+            all_logs = f.readlines()
+            # Get last 50 log entries for this session
+            for line in all_logs[-50:]:
+                try:
+                    log_entry = json.loads(line)
+                    if log_entry.get("session_id") == session_id:
+                        recent_logs.append(log_entry)
+                except json.JSONDecodeError:
+                    continue
+    
+    # Read recent agent outputs
+    recent_outputs = []
+    if recent_outputs_dir.exists():
+        for output_file in sorted(recent_outputs_dir.glob("*.md"), key=lambda x: x.stat().st_mtime)[-5:]:
+            with open(output_file, "r") as f:
+                recent_outputs.append({
+                    "file": output_file.name,
+                    "content": f.read()[:1000]  # First 1000 chars
+                })
+    
+    # Prepare Overseer context
+    overseer_context = {
+        "recent_logs": recent_logs,
+        "recent_outputs": recent_outputs,
+        "session_id": session_id,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    overseer_input = f"""
+Please review the recent agent activities and outputs for anomalies, safety violations, or concerns.
+
+Session ID: {session_id}
+Current Time: {overseer_context['timestamp']}
+
+Recent Log Entries:
+{json.dumps(recent_logs, indent=2)}
+
+Recent Agent Outputs (truncated):
+{json.dumps(recent_outputs, indent=2)}
+
+Analyze these activities and generate alerts if you detect any issues.
+"""
+    
+    # Engage the Overseer Agent
+    overseer_output_path = recent_outputs_dir / f"overseer_review_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+    
+    # For Overseer, we prefer Claude for better analysis
+    actual_llm = "claude" if llm_choice == "claude" or llm_choice == "ollama" else llm_choice
+    
+    # Note: We don't use engage_agent here to maintain independence
+    agent_template_path = TEMPLATES_DIR / "agents" / "overseer_agent_system_prompt.md"
+    mcp_defs = load_mcp_definitions()
+    full_prompt = build_agent_prompt(agent_template_path, mcp_defs, overseer_input)
+    
+    if actual_llm == "claude":
+        response = call_claude(full_prompt)
+    else:
+        response = call_ollama(full_prompt)
+    
+    # Save Overseer output
+    with open(overseer_output_path, "w") as f:
+        f.write(response)
+    
+    # Check for critical alerts
+    has_critical = "CRITICAL" in response
+    
+    if has_critical:
+        print("\n" + "="*60)
+        print("🚨 CRITICAL OVERSEER ALERT DETECTED 🚨")
+        print("="*60)
+        print(response)
+        print("="*60)
+        print("\nWorkflow paused. Please review the alert above.")
+        input("Press Enter to continue after addressing the issue...")
+    elif "WARNING" in response:
+        print("\n⚠️  Overseer Warning:")
+        print(response)
+    
+    return has_critical
+
+
 # --- Main Orchestration Loop (called by run_workflow.sh) ---
 def main_workflow_loop(
     project_name: str,
@@ -448,6 +542,10 @@ def main_workflow_loop(
         print("You can now enter the Execution Phase or refine the plan manually.")
 
     elif workflow_type == "execution":
+        # Track interactions for Overseer invocation
+        interaction_count = 0
+        overseer_check_interval = 5  # Check every 5 interactions
+        
         # Loop for execution phase actions
         while True:
             print("\n--- Execution Actions ---")
@@ -457,7 +555,8 @@ def main_workflow_loop(
             print("D) Engage Documentation Agent")
             print("E) Engage Code Review Agent")
             print("F) Engage Refactor Agent")
-            print("G) Engage n8n Flow Creator Agent") # New agent
+            print("G) Engage n8n Flow Creator Agent")
+            print("H) Invoke Overseer Review (Manual)")
             print("M) Back to Main Menu")
             print("Q) Quit AI Rails")
             exec_choice = input("Choose an action: ").lower().strip()
@@ -537,6 +636,11 @@ def main_workflow_loop(
                     session_id=session_id,
                     llm_choice=llm_choice
                 )
+            elif exec_choice == "h":
+                # Manual Overseer Review
+                print("\n--- Manual Overseer Review ---")
+                invoke_overseer_review(session_id, current_project_output_dir, llm_choice)
+                interaction_count = 0  # Reset counter after manual review
 
             elif exec_choice == "m":
                 log_event("WORKFLOW_STATE_CHANGE", "Returning to Main Menu.", session_id=session_id)
@@ -546,6 +650,21 @@ def main_workflow_loop(
                 sys.exit(0)
             else:
                 print("Invalid choice. Please try again.")
+                continue  # Don't increment interaction count for invalid choices
+            
+            # Increment interaction count for valid agent interactions
+            if exec_choice in ["a", "b", "c", "d", "e", "f", "g"]:
+                interaction_count += 1
+                
+                # Check if it's time for automatic Overseer review
+                if interaction_count >= overseer_check_interval:
+                    print(f"\n--- Automatic Overseer Review (every {overseer_check_interval} interactions) ---")
+                    critical_found = invoke_overseer_review(session_id, current_project_output_dir, llm_choice)
+                    interaction_count = 0  # Reset counter
+                    
+                    if critical_found:
+                        print("\nDue to critical issues, please review the workflow before continuing.")
+                        continue
 
     log_event("WORKFLOW_END", f"AI Rails workflow ended for {project_name} ({workflow_type}).", session_id=session_id)
 
