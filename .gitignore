@@ -32,3 +32,29 @@ Thumbs.db
 
 # Output files
 output/
+
+# Personal configurations
+.env.personal
+.env.colin*
+*.colin.*
+README.personal.md
+personal-config/
+.ai-rails-config
+
+# Project-specific MCPs (optional - users might want to commit these)
+# Uncomment if you want to keep project MCPs in git:
+# .ai-rails/mcp_definitions/
+# .ai-rails/.env
+
+# Test files
+test_*.py
+*_test.py
+
+# Backup files
+*.backup
+*.bak
+.env.backup*
+
+# Scratch directory (for temporary work)
+scratch/
+!scratch/README.md

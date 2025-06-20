@@ -1,0 +1,51 @@
+{
+  "tool_name": "FetchMCP",
+  "description": "Performs HTTP GET requests to retrieve content from specified URLs. Useful for fetching web content, external API documentation, or simple data from public endpoints.",
+  "api_endpoint": "http://10.0.0.2:8009",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "The URL to fetch content from."
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Optional: Timeout for the request in seconds. Defaults to 30."
+      }
+    },
+    "required": ["url"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "content": {
+        "type": "string",
+        "description": "The content retrieved from the URL."
+      },
+      "headers": {
+        "type": "object",
+        "description": "HTTP response headers."
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message if the request failed."
+      }
+    }
+  },
+  "access_control": {
+    "Planning Agent": "free_access",
+    "Coder Agent": "free_access",
+    "Documentation Agent": "free_access",
+    "n8n Flow Creator Agent": "free_access"
+  },
+  "agent_specific_guidance": {
+    "Planning Agent": "To gather external information from specific web pages or public API documentation that is crucial for your planning, use FetchMCP. Provide the exact 'url' to fetch.",
+    "Coder Agent": "If you need to retrieve raw content from a specific URL (e.g., an external API definition, a public script, or a specific documentation page), use FetchMCP. Ensure the 'url' is precise.",
+    "Documentation Agent": "When generating documentation, use FetchMCP to retrieve content from external websites, public API references, or tutorials to include or summarize in your output.",
+    "n8n Flow Creator Agent": "To analyze the structure of an external webhook, or to fetch data from a public API that will be integrated into an n8n workflow, use FetchMCP to retrieve the content from the 'url'."
+  }
+}

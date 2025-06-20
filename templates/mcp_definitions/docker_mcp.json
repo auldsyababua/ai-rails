@@ -1,0 +1,54 @@
+{
+  "tool_name": "DockerMCP",
+  "description": "Manages Docker containers and images, allowing agents to inspect container logs, status, or start/stop containers for debugging and deployment operations. Highly sensitive actions require human approval.",
+  "api_endpoint": "http://10.0.0.2:8008",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["list_containers", "get_container_logs", "inspect_container", "start_container", "stop_container", "restart_container"],
+        "description": "The action to perform on Docker."
+      },
+      "container_id": {
+        "type": "string",
+        "description": "The ID or name of the target container (required for most actions)."
+      },
+      "image_name": {
+        "type": "string",
+        "description": "The name of the Docker image (for future image-related actions)."
+      },
+      "follow_logs": {
+        "type": "boolean",
+        "description": "Optional: Whether to stream logs in real-time (for get_container_logs)."
+      },
+      "tail_lines": {
+        "type": "integer",
+        "description": "Optional: Number of last lines to retrieve for logs (for get_container_logs)."
+      }
+    },
+    "required": ["action"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "data": {
+        "type": ["string", "array", "object"],
+        "description": "The result of the Docker operation (e.g., container list, logs, container details)."
+      }
+    }
+  },
+  "access_control": {
+    "Debugger Agent": "permissioned_access",
+    "Overseer Agent": "permissioned_access",
+    "n8n Flow Creator Agent": "permissioned_access"
+  },
+  "agent_specific_guidance": {
+    "Debugger Agent": "If you suspect an issue is container-related, use DockerMCP with 'get_container_logs' or 'inspect_container' for diagnostic information. If you need to propose 'start_container', 'stop_container', or 'restart_container' to test a fix, these actions are highly sensitive and require human approval.",
+    "Overseer Agent": "For monitoring container health and application stability, use DockerMCP to 'list_containers' and 'get_container_logs' (read-only for general monitoring). If you detect a critical issue that requires a container restart, you may propose 'restart_container', which requires human approval.",
+    "n8n Flow Creator Agent": "If your n8n automation needs to interact with or deploy Docker containers as part of a workflow, you may propose using DockerMCP actions like 'start_container'. This is a highly sensitive action requiring explicit human approval."
+  }
+}

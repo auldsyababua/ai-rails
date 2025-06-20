@@ -176,60 +176,84 @@ To ensure agents stay on "rails" and prevent "gaming" the logs:
       3. If the problem persists with Claude, it will trigger a "Manual Intervention Required" alert, suggesting direct human review or intervention, potentially providing all relevant logs and outputs.  
     * **Implementation Effort:** Tracking retries and conditional logic in Python is straightforward. Integrating a Brave Search MCP requires developing that specific MCP (or finding an existing one) and writing the call\_mcp.py logic for it. The effort for this automated retry/fallback is moderate but highly valuable. The ability to switch LLMs mid-session is *not* planned for MVP; rather, the *session* restarts with the new LLM if you choose to switch.
 
-#### **7\. Future Updates / Scratchpad**
+---
 
-This section serves as a living document for potential improvements and ideas.
+### **7\. Secure Secrets Management (SecretsMCP)**
 
-* **Simple UI / Dashboard (App-like Web Controller \- MVP Priority):**  
-  * **Goal:** A beautiful, simple, app-like experience to manage the "AI Rails" workflow, eliminating manual copy-pasting. This is an **MVP feature**.  
-  * **Technology:** A Python web application (e.g., Flask, FastAPI with a lightweight frontend framework like HTMX, Alpine.js, or vanilla JS) running in a Docker container on your **NAS** (192.168.1.21) or **Workhorse** (10.0.0.2), accessible via your Nginx Proxy (192.168.1.3). This avoids Mac Mini localhost issues and centralizes UI hosting.  
-  * **Features:**  
-    * **Output Box:** Display the output from the previous step clearly, rendered as Markdown if applicable.  
-    * **"Send to Next Agent" Buttons:** Automate the copy-pasting of current output as input to the next agent.  
-    * **Tool Use Automation:** Buttons within the UI that, when clicked, trigger the execution of formulated MCP Query Requests or n8n Automation Requests via backend Python scripts. This eliminates manual copy-pasting for tools.  
-    * **Diff Viewer:** An area to view code changes, diffs, and review reports.  
-    * **Commit/Push Integration:** Buttons to trigger git commit and git push after code generation/review.  
-    * **Log Viewer:** A dedicated panel to display the ai-rails.log in real-time, perhaps with filtering.  
-    * **Template Manager:** A UI to view, edit, and manage agent system prompts and kickoff templates.  
-    * **Agent Request Alert System (New):**  
-      * When an MCP Query Request or n8n Automation Request is detected, a prominent UI alert (modal/notification) appears.  
-      * Displays: Requesting Agent (Planner, Coder, etc.), full raw JSON request, explanation of the MCP/tool.  
-      * Buttons: "Accept & Run Tool" (automates execution and feeds result to agent), "Deny & Send Custom Feedback" (opens input for human response to agent), "Deny & Stop Agent" (terminates current agent session).  
-* **Command-Line Arguments / Quick Start Alias:**  
-  * **Goal:** Allow bypassing interactive prompts for common workflows using command-line arguments.  
-  * **Mechanism:** Enhance run\_workflow.sh to parse arguments like airails \<alias\_name\> \<project\_location\_or\_name\> \<takeover\_type\> "\<initial\_summary\>".  
-  * **Error Handling:** If \<project\_location\_or\_name\> is given for a "new project" command and the directory already exists, the script should **reject with a message: "A project/directory with this name already exists. Please choose another name,"** then give a prompt for input of the new name (if interactive) or error out (if in non-interactive/alias mode). For "takeover" or "feature" modes, it would check for existence but not necessarily reject.  
-* **Redis Support for Agent State Management:**  
-  * **Goal:** Maintain conversation history and short-term memory across multiple agent turns and sessions without constantly re-pasting large contexts.  
-  * **Mechanism:** Utilize a Redis instance (on Workhorse or NAS).  
-  * The UI controller (or ai\_rails\_backend.py) would be responsible for serializing/deserializing conversation state to/from Redis.  
-  * Agent system prompts would be updated to instruct them to leverage this "short-term memory" by referencing a unique session ID.  
-* **Automated MCP call\_mcp.sh / call\_mcp.py and Response Parsing:**  
-  * Develop a dedicated Python script (call\_mcp.py) that acts as a central handler for all MCP and n8n tool calls.  
-  * It will take the agent's formulated JSON request, identify the mcp\_name, route the request to the correct Workhorse IP/port, handle API calls, and parse the response.  
-  * It will then return the relevant context to the calling ai\_rails\_backend.py for injection into the LLM.  
-* **Automated Local Codebase Indexing for CodebaseSummaryMCP:**  
-  * Set up a daemon on the Workhorse (or NAS) that continuously indexes your project's codebase into a local vector database. This database would then be served by your custom CodebaseSummaryMCP.  
-* **Dynamic Tool Description Injection (Refined):** Instead of hardcoding all tool descriptions in every agent prompt, the UI/backend could dynamically inject *only the relevant tool definitions* (from templates/mcp\_definitions/) into the system prompt for the active agent, further minimizing context window usage.  
-* **Overseer Agent Detailed Explanation (New):**  
-  * Refer to docs/overseer\_agent\_details.md for a comprehensive explanation of the Overseer Agent's architecture, anomaly detection strategies, context management (summarization), and UI integration (alert system, interruption mechanism). This will mostly recycle the detailed explanation provided in previous turns.
-* **Centralized & Granular Tool Configuration (Enhanced `templates/mcp_definitions/`):**
-  * **Goal:** To establish a single, highly maintainable source of truth for defining available tools (MCPs and n8n automations), their access permissions, and agent-specific usage guidance. This eliminates the need to manually update instructions within each agent's system prompt Markdown file whenever a tool is added, modified, or its usage guidance changes.
-  * **Problem Solved:** Prevents scattered and potentially inconsistent tool usage instructions across multiple agent prompt templates, improving maintainability and reducing human error during updates.
-  * **Mechanism:**
-      * **Augmented MCP Definitions:** The JSON files within `templates/mcp_definitions/` will be enhanced to include new top-level fields:
-          * `access_control`: A JSON object defining which `agent_role`s have access to this tool, and their permission level (e.g., `"free_access"` for direct use, `"permissioned_access"` for human-gated approval for sensitive operations like `SecretsMCP` for `ANTHROPIC_API_KEY`).
-          * `agent_specific_guidance`: A JSON object where keys are `agent_role`s and values are Markdown strings providing specific instructions to that agent on *when* and *how* to best formulate a request for this particular tool.
-      * **Backend Logic Refinement (`ai_rails_backend.py`):**
-          * The `ai_rails_backend.py` will read these extended MCP definitions.
-          * When constructing an agent's prompt, it will filter the tool list based on the current `agent_role`'s `access_control` for each tool.
-          * For each accessible tool, it will dynamically inject not just the `tool_name`, `description`, and `request_schema`, but also the `agent_specific_guidance` relevant to the active agent into the "Available Tools" section of the prompt.
-          * The backend will then enforce the `free_access` vs. `permissioned_access` logic for tool execution, especially critical for the `SecretsMCP`.
-  * **Benefits:**
-      * **Single Source of Truth:** All tool-related configurations and instructions live in one central place.
-      * **Improved Maintainability:** Adding, modifying, or removing tools (or their usage guidelines) only requires updating their respective JSON definition, not multiple agent Markdown files.
-      * **Enhanced Precision:** Agents receive highly tailored instructions for each tool, based on their specific role and the tool's intended use within that role.
-      * **Scalability:** Easier to manage a growing number of agents and tools.
-* **Integration of 3rd Party AI Code Review Agents:** Explore and implement dedicated MCPs to leverage external AI code review services (e.g., CodeRabbit, Diamond) for enhanced code quality and security analysis, with human-gated approval.
+The `SecretsMCP` is a critical component for securely managing and serving sensitive environment variables and API keys to AI agents while strictly adhering to the human-in-the-loop and least-privilege principles. It centralizes secrets, prevents their exposure in code or logs, and enables fine-grained human approval for sensitive access.
 
-1. ok now can you tell me what i need to change in each agent template to cover the n8n and MCP stuff
+#### **Architecture & Flow:**
+
+1.  **Dedicated SecretsMCP Service (AI Workhorse):**
+    * A lightweight Python FastAPI service is deployed on the AI Workhorse (e.g., at `http://10.0.0.2:8004`), in its own dedicated Git repository (`secrets-mcp/`).
+    * This service reads sensitive secrets from its *own, highly-secured `.env` file* (e.g., `/opt/secrets_mcp/.env`) with strict file permissions (e.g., `chmod 600`). This `.env` file is never committed to Git.
+    * It exposes a `/get_secret` endpoint.
+    * **Authentication:** The service implements authentication middleware (e.g., using an `X-API-Key` header) to ensure only authorized clients can request secrets. This `SECRETS_MCP_AUTH_KEY` is stored securely in the SecretsMCP's `.env`.
+    * Logging is implemented for audit trails of secret requests.
+
+2.  **AI Rails Backend Client (Mac Mini):**
+    * The `ai_rails_backend.py` script on the Mac Mini is the client that initiates secret requests via `call_mcp.py`.
+    * It has its own non-sensitive `.env` file (`.ai-rails/.env`) which contains the `SecretsMCP` URL and the `AI_RAILS_SECRETS_MCP_AUTH_TOKEN` (the authentication token for the `SecretsMCP` service).
+    * When an agent requests a secret:
+        * `ai_rails_backend.py` checks if the requested `secret_name` is in a predefined `SENSITIVE_SECRETS` list (e.g., `["ANTHROPIC_API_KEY", "DB_PASSWORD"]`).
+        * If it's a sensitive secret, `ai_rails_backend.py` **pauses** and prompts the human operator for explicit approval.
+        * If approved (or if the secret is not sensitive), `call_mcp.py` is invoked.
+
+3.  **`call_mcp.py` (The Dispatcher):**
+    * Retrieves the `AI_RAILS_SECRETS_MCP_AUTH_TOKEN` from its environment.
+    * Makes an authenticated HTTP POST request to the `SecretsMCP`'s `/get_secret` endpoint, including the `secret_name` in the payload and the authentication token in the headers.
+
+4.  **Secure Secret Transmission:**
+    * The `SecretsMCP` retrieves the requested secret from its secure `.env` file.
+    * It returns the actual secret value securely over the 10GbE link to `call_mcp.py`.
+    * `ai_rails_backend.py` receives the secret value and temporarily injects it into the LLM's context for that specific turn, or makes it available for a tool execution, **without persisting it or exposing it to the agent directly in its prompt history.**
+
+#### **Security Measures:**
+
+* **Isolation:** Sensitive secrets are isolated to the Workhorse/NAS, never residing directly on the Mac Mini in a committable file.
+* **Human Gating:** Explicit human approval acts as a circuit breaker for all sensitive secret requests.
+* **Authentication:** Client-to-service authentication prevents unauthorized access to the `SecretsMCP`.
+* **Least Privilege:** SecretsMCP only exposes the requested secret, not the entire `.env` file.
+* **Auditing:** Logging of secret requests provides an audit trail.
+* **Containerization:** Deploying SecretsMCP as a Docker container ensures isolation and repeatable deployment.
+
+---
+
+### **8. Simple UI/Dashboard (App-like Web Controller - MVP Priority)**
+
+The AI Rails UI will provide a clean, web-based interface to replace the command-line `run_workflow.sh` script, making the system more accessible and user-friendly while maintaining the core principle of human control.
+
+#### **Architecture & Technology Stack:**
+
+1. **Backend (Python FastAPI):**
+   * FastAPI service running on the Mac Mini alongside `ai_rails_backend.py`
+   * Manages workflow state, agent orchestration, and MCP/tool requests
+   * WebSocket support for real-time agent output streaming
+   * RESTful API endpoints for workflow control
+   * Session management for concurrent projects
+
+2. **Frontend (React/Next.js):**
+   * Modern, responsive single-page application
+   * Real-time updates via WebSocket connections
+   * Clean, terminal-inspired design with better UX
+   * Modal dialogs for MCP/tool approval workflows
+   * Syntax highlighting for code outputs
+
+3. **Key Features:**
+   * **Project Dashboard:** Overview of all active and past projects
+   * **Workflow Wizard:** Guided flow for new projects, feature updates, and takeovers
+   * **Agent Monitor:** Real-time view of agent activities with streaming outputs
+   * **Approval Interface:** Clear, prominent alerts for MCP/tool requests with:
+     - Visual indication of request type and severity
+     - Formatted display of request parameters
+     - Accept/Deny buttons with optional feedback
+   * **Output Viewer:** In-browser viewing of agent outputs with syntax highlighting
+   * **Log Explorer:** Searchable, filterable view of the ai-rails.log
+   * **LLM Selector:** Easy switching between Ollama and Claude with status indicators
+
+4. **Implementation Plan:**
+   * Phase 1: Basic workflow control (start, stop, select agents)
+   * Phase 2: Real-time output streaming and approval dialogs
+   * Phase 3: Enhanced features (search, filtering, project management)
+
+This UI will significantly improve the user experience while maintaining the strict human-in-the-loop control that is fundamental to the AI Rails philosophy.

@@ -1,0 +1,51 @@
+{
+    "tool_name": "MCP_Sequential_Thinking",
+    "description": "Provides structured reasoning, task breakdown, and sequential thought processes for complex problems. Useful for generating detailed plans, outlining steps, or breaking down high-level requirements.",
+    "api_endpoint": "http://10.0.0.2:8001/process",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "problem_statement": {
+          "type": "string",
+          "description": "The main problem or task that needs structured thinking."
+        },
+        "context": {
+          "type": "string",
+          "description": "Any relevant context or background information to aid the thinking process."
+        },
+        "desired_output_format": {
+          "type": "string",
+          "description": "A description of the desired format for the thinking process output (e.g., 'bullet points', 'numbered steps', 'JSON structure')."
+        }
+      },
+      "required": ["problem_statement"]
+    },
+    "response_format": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "The structured reasoning or breakdown of the problem."
+        }
+      }
+    },
+    "access_control": {
+      "Planning Agent": "free_access",
+      "Coder Agent": "free_access",
+      "Unit Tester Agent": "free_access",
+      "Debugger Agent": "free_access",
+      "Refactor Agent": "free_access",
+      "n8n Flow Creator Agent": "free_access"
+    },
+    "agent_specific_guidance": {
+      "Planning Agent": "Use this MCP to break down complex project requirements into detailed, sequential steps, considering architectural implications and risk assessments. Clearly state the 'problem_statement' and provide 'context' related to the project scope. Request the 'desired_output_format' as a comprehensive plan with distinct phases.",
+      "Coder Agent": "When faced with complex coding tasks that require breaking down into smaller, manageable sub-tasks, use this MCP. Provide the 'problem_statement' as the coding challenge and relevant 'context' such as existing code structure or design patterns. Request 'desired_output_format' as a step-by-step implementation guide.",
+      "Unit Tester Agent": "Leverage this MCP to help generate a comprehensive test plan for a given code module. Provide the function's purpose as the 'problem_statement' and details like expected inputs/outputs, edge cases, or existing test coverage as 'context'. Request 'desired_output_format' as a list of test cases.",
+      "Debugger Agent": "If a bug is complex and requires a methodical diagnostic approach, use this MCP to break down the debugging process. Provide the error message and symptoms as the 'problem_statement', and relevant logs or code snippets as 'context'. Request 'desired_output_format' as a series of diagnostic steps.",
+      "Refactor Agent": "For large-scale refactoring tasks, use this MCP to plan the refactoring steps logically and sequentially. State the refactoring goal as the 'problem_statement' (e.g., 'refactor authentication module to use new OIDC flow') and existing code structure as 'context'. Request 'desired_output_format' as a phased refactoring plan.",
+      "n8n Flow Creator Agent": "When designing complex n8n workflows, use this MCP to outline the logical sequence of operations. Describe the automation goal as the 'problem_statement' and any system integrations or data transformations as 'context'. Request 'desired_output_format' as a step-by-step flow diagram or textual outline."
+    }
+  }

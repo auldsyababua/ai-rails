@@ -1,0 +1,76 @@
+{
+    "tool_name": "Context7",
+    "description": "Provides vector-database backed context retrieval for documentation, code examples, or specific knowledge bases. Useful for RAG (Retrieval Augmented Generation) to fetch up-to-date and relevant information.",
+    "api_endpoint": "http://10.0.0.2:8002/query",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The natural language query or question to retrieve context for."
+        },
+        "source_filter": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional: An array of strings to filter context sources (e.g., ['react_docs', 'internal_wiki', 'api_references'])."
+        },
+        "num_results": {
+          "type": "integer",
+          "description": "Optional: The maximum number of relevant chunks to retrieve. Defaults to a reasonable number if not specified."
+        }
+      },
+      "required": ["query"]
+    },
+    "response_format": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "description": "The retrieved text content."
+              },
+              "source": {
+                "type": "string",
+                "description": "The source of the content (e.g., 'react_docs/hooks.md')."
+              },
+              "score": {
+                "type": "number",
+                "description": "Relevance score of the retrieved content."
+              }
+            }
+          }
+        }
+      }
+    },
+    "access_control": {
+      "Planning Agent": "free_access",
+      "Coder Agent": "free_access",
+      "Unit Tester Agent": "free_access",
+      "Debugger Agent": "free_access",
+      "Documentation Agent": "free_access",
+      "Code Review Agent": "free_access",
+      "Refactor Agent": "free_access",
+      "n8n Flow Creator Agent": "free_access",
+      "Overseer Agent": "free_access"
+    },
+    "agent_specific_guidance": {
+      "Planning Agent": "When you need detailed information on specific technologies, design patterns, or domain knowledge for planning, use this MCP. Formulate a precise 'query' and consider adding 'source_filter' if you know where the information should come from.",
+      "Coder Agent": "Before implementing complex features or using unfamiliar APIs, query Context7 to retrieve relevant documentation, code snippets, or best practices. Be specific in your 'query' (e.g., 'How to use new React Context API').",
+      "Unit Tester Agent": "If a test case requires specific data or behavior knowledge from external documentation (e.g., API response structures), use Context7 to retrieve that context to inform your test generation.",
+      "Debugger Agent": "When an error message points to a specific library or system, use Context7 to retrieve relevant documentation or troubleshooting guides for that component. Your 'query' should be precise to the problem.",
+      "Documentation Agent": "This is your primary tool for pulling in accurate and up-to-date information for your documentation. Use it to retrieve details about APIs, functions, or concepts that need to be explained.",
+      "Code Review Agent": "When reviewing code that uses unfamiliar patterns or third-party libraries, use Context7 to quickly retrieve official documentation or community best practices to ensure correctness and security.",
+      "Refactor Agent": "Before proposing large-scale refactoring, use Context7 to retrieve modern design patterns, library updates, or official guidelines that might influence the refactoring strategy.",
+      "n8n Flow Creator Agent": "When building flows involving external services, use Context7 to retrieve API documentation or common integration patterns for those services. Your 'query' should focus on the specific service and action.",
+      "Overseer Agent": "When an anomaly or log message refers to a specific system component or error code, use Context7 to retrieve relevant documentation for that component to aid in diagnosis."
+    }
+  }

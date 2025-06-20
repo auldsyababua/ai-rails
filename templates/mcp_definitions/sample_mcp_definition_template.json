@@ -1,0 +1,125 @@
+{
+    // **tool_name (String - REQUIRED):**
+    // This is the unique identifier for your MCP.
+    // It should be a concise, descriptive name, typically in PascalCase.
+    // The 'ai_rails_backend.py' script uses this name to look up the MCP's definition.
+    // The AI agents will also refer to this name when making a tool request.
+    // Example: "MyNewCustomMCP"
+    "tool_name": "SampleNewMCP",
+  
+    // **description (String - REQUIRED):**
+    // A brief, human-readable description of what this MCP does.
+    // This description will be injected into the AI agent's system prompt
+    // to help the agent understand the purpose and capabilities of the tool.
+    // Make it clear and concise, focusing on the MCP's functionality.
+    // Example: "Provides real-time stock quotes for specified company tickers."
+    "description": "A template for defining a new Model Context Provider (MCP) or external tool in the AI Rails system. It demonstrates the required structure and explains each field.",
+  
+    // **api_endpoint (String - REQUIRED):**
+    // The full URL where this MCP service can be reached.
+    // This is the actual network address that 'call_mcp.py' will use to send requests.
+    // Ensure it includes the protocol (http/https), IP address or hostname, port, and base path.
+    // Example: "http://10.0.0.2:8006/get_data"
+    "api_endpoint": "http://10.0.0.2:XXXX/your_mcp_endpoint", // Replace XXXX with the actual port
+  
+    // **request_schema (JSON Object - REQUIRED):**
+    // This defines the expected structure of the JSON payload that AI agents
+    // should send when requesting to use this MCP. It adheres to JSON Schema standards.
+    // The 'properties' key lists all allowed parameters, with their 'type' and 'description'.
+    // The 'required' array specifies which of these properties *must* be present in the request.
+    // This schema is critical for guiding the AI agent to formulate correct requests
+    // and for the backend to validate incoming requests from the agent.
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        // **parameter_name (String):** The name of a parameter expected by your MCP.
+        // Make this descriptive and camelCase.
+        "query_param": {
+          // **type (String):** The data type of the parameter (e.g., "string", "integer", "boolean", "array", "object").
+          "type": "string",
+          // **description (String):** A clear explanation of what this parameter represents and its purpose.
+          // This helps the AI agent understand how to use the parameter.
+          "description": "A string representing the main query or input for this MCP."
+        },
+        "optional_param": {
+          "type": "integer",
+          "description": "An optional integer parameter to refine the query, e.g., number of results."
+        },
+        "category": {
+          "type": "string",
+          "description": "A category filter for the query, e.g., 'finance', 'technology'."
+        }
+      },
+      // **required (Array of Strings):**
+      // A list of parameter names from 'properties' that *must* be included in the agent's request.
+      // If a required parameter is missing, the request will be considered invalid.
+      "required": ["query_param"]
+    },
+  
+    // **response_format (JSON Object - OPTIONAL but HIGHLY RECOMMENDED):**
+    // This defines the expected structure of the JSON response that this MCP service
+    // will return. While not strictly enforced by the backend for execution,
+    // including this helps the AI agent understand what kind of data to expect
+    // from the MCP, aiding its subsequent reasoning.
+    // It also serves as good documentation for developers.
+    "response_format": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Indicates the success or failure of the MCP call (e.g., 'success', 'error')."
+        },
+        "data": {
+          "type": "array",
+          "description": "An array of results returned by the MCP.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "message": {
+          "type": "string",
+          "description": "A human-readable message, often for errors or confirmations."
+        }
+      }
+    },
+  
+    // **access_control (JSON Object - REQUIRED):**
+    // This section defines which AI agents are allowed to access this MCP
+    // and their permission level. This is crucial for security and control.
+    // Keys are 'agent_role' (e.g., "Planning Agent", "Coder Agent").
+    // Values are 'permission_level' ("free_access" or "permissioned_access").
+    // - "free_access": The MCP request can be executed by 'ai_rails_backend.py'
+    //                  without explicit human approval in the terminal.
+    //                  (Best for read-only, non-sensitive operations).
+    // - "permissioned_access": The 'ai_rails_backend.py' will *pause* and
+    //                          require explicit human "yes/no" approval
+    //                          before executing the MCP request.
+    //                          (REQUIRED for sensitive actions, writing to disk,
+    //                          accessing sensitive secrets, or triggering external services).
+    "access_control": {
+      "Planning Agent": "free_access",
+      "Coder Agent": "permissioned_access", // Example: Coder needs approval for this specific MCP
+      "Any Other Agent": "free_access" // You can specify specific agents here
+    },
+  
+    // **agent_specific_guidance (JSON Object - REQUIRED):**
+    // This provides tailored instructions to *each specific AI agent* on *when*
+    // and *how* to best formulate a request for this particular tool.
+    // This Markdown string will be dynamically injected into the agent's system prompt
+    // by 'ai_rails_backend.py' for the relevant agent.
+    // This is where you can give nuanced advice, examples, or warnings.
+    "agent_specific_guidance": {
+      "Planning Agent": "When you need to retrieve high-level data related to [specific domain of this MCP], use this MCP. Formulate your 'query_param' clearly and specify any 'category' if applicable.",
+      "Coder Agent": "Before writing code that relies on external data from [specific domain], use this MCP to fetch the necessary information. Be precise with your 'query_param'. REMEMBER: This tool requires human approval.",
+      "Unit Tester Agent": "If your tests require specific data points that this MCP can provide, formulate a request for the 'query_param' to fetch them. Ensure the data is relevant for your test case generation."
+      // Add guidance for all relevant agents that will use this MCP
+    }
+  }

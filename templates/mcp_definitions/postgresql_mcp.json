@@ -1,0 +1,58 @@
+{
+  "tool_name": "PostgreSQLMCP",
+  "description": "Interacts with a PostgreSQL database to execute queries, retrieve schema information, or perform data manipulation (read-only for planning/documentation, write for specific, permissioned actions).",
+  "api_endpoint": "http://10.0.0.2:8007",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["execute_query", "get_schema_info", "insert_data", "update_data", "delete_data"],
+        "description": "The type of operation to perform (e.g., 'get_schema_info' for read-only, 'insert_data' for write)."
+      },
+      "query": {
+        "type": "string",
+        "description": "The SQL query string to execute (for execute_query)."
+      },
+      "table_name": {
+        "type": "string",
+        "description": "The name of the table to get schema info for, or to insert/update/delete data."
+      },
+      "data": {
+        "type": "object",
+        "description": "JSON object representing data for insert/update operations."
+      },
+      "conditions": {
+        "type": "object",
+        "description": "JSON object representing WHERE clause conditions for update/delete operations."
+      }
+    },
+    "required": ["action"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "results": {
+        "type": "array",
+        "description": "An array of rows returned by a query, or a success message."
+      }
+    }
+  },
+  "access_control": {
+    "Planning Agent": "free_access",
+    "Coder Agent": "permissioned_access",
+    "Documentation Agent": "free_access",
+    "Debugger Agent": "permissioned_access",
+    "Unit Tester Agent": "permissioned_access"
+  },
+  "agent_specific_guidance": {
+    "Planning Agent": "When your plan involves database design or interaction with an existing PostgreSQL database, use 'get_schema_info' to understand table structures or 'execute_query' for read-only data examples. This is read-only for you.",
+    "Coder Agent": "If your code needs to interact with a PostgreSQL database, you can use 'get_schema_info' for reference. If you need to propose an 'insert_data', 'update_data', or 'delete_data' operation, this action requires human approval as it modifies the database.",
+    "Documentation Agent": "To document database schemas, table definitions, or example data, use 'get_schema_info' or 'execute_query' (read-only) to fetch the necessary information from PostgreSQL.",
+    "Debugger Agent": "If a bug is related to database state, you may propose 'execute_query' to inspect data, or 'update_data'/'delete_data' to manipulate data for testing fixes. Any data modification requires human approval.",
+    "Unit Tester Agent": "If setting up or tearing down test data in a *real* database is necessary for your tests, you may propose 'insert_data', 'update_data', or 'delete_data'. These actions are highly sensitive and require explicit human approval."
+  }
+}

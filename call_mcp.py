@@ -99,6 +99,9 @@ def call_mcp(tool_name: str, parameters: dict) -> dict:
         if not secret_name:
             return {"status": "error", "message": "SecretsMCP requires 'secret_name' parameter in its request."}
         
+        # Get project context if available
+        project_name = parameters.get("project_name") or os.getenv("AI_RAILS_PROJECT_NAME")
+        
         # Get authentication token
         auth_token = os.getenv("AI_RAILS_SECRETS_MCP_AUTH_TOKEN")
         if not auth_token:
@@ -110,10 +113,16 @@ def call_mcp(tool_name: str, parameters: dict) -> dict:
             "Content-Type": "application/json"
         }
         
+        # Build request payload
+        request_payload = {"secret_name": secret_name}
+        if project_name:
+            request_payload["project_name"] = project_name
+            print(f"[call_mcp]: Using project context: {project_name}")
+        
         # Assuming the Secrets MCP has a /get_secret endpoint
         endpoint = f"{mcp_url}/get_secret"
         try:
-            response = requests.post(endpoint, json={"secret_name": secret_name}, headers=headers, timeout=30)
+            response = requests.post(endpoint, json=request_payload, headers=headers, timeout=30)
             response.raise_for_status()
             # For security, the actual secret value should NOT be logged directly here or elsewhere
             # Only log that a request was made and its status.

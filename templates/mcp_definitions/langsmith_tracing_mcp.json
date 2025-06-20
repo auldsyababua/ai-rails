@@ -1,0 +1,54 @@
+{
+  "tool_name": "LangSmithTracingMCP",
+  "description": "Provides access to LLM observability and debugging traces from LangSmith. Useful for analyzing agent behavior, prompt effectiveness, and identifying bottlenecks in agent interactions.",
+  "api_endpoint": "https://api.smith.langchain.com/runs/",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get_run_details", "list_runs_by_project"],
+        "description": "The type of LangSmith operation."
+      },
+      "run_id": {
+        "type": "string",
+        "description": "The specific run ID to retrieve details for (for get_run_details)."
+      },
+      "project_name": {
+        "type": "string",
+        "description": "The name of the LangSmith project to list runs from (for list_runs_by_project)."
+      },
+      "filter_by_agent_role": {
+        "type": "string",
+        "description": "Optional: Filter runs by a specific agent role."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Optional: Maximum number of runs to return (for list_runs_by_project)."
+      }
+    },
+    "required": ["action"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "description": "The retrieved run details or list of runs from LangSmith."
+      }
+    }
+  },
+  "access_control": {
+    "Overseer Agent": "free_access",
+    "Debugger Agent": "free_access",
+    "Code Review Agent": "free_access"
+  },
+  "agent_specific_guidance": {
+    "Overseer Agent": "To monitor the overall performance and behavior of other agents, use LangSmithTracingMCP to 'list_runs_by_project' or 'get_run_details' for specific interactions. This helps in identifying recurring issues or inefficiencies in agent performance.",
+    "Debugger Agent": "When an agent is behaving unexpectedly or generating incorrect output, use LangSmithTracingMCP with 'get_run_details' for the specific 'run_id' to analyze its thought process, tool calls, and exact inputs/outputs. This is crucial for debugging agent-side issues.",
+    "Code Review Agent": "If a generated code segment or test plan seems off, use LangSmithTracingMCP to 'get_run_details' for the relevant agent's run to understand the full context and reasoning that led to the output."
+  }
+}

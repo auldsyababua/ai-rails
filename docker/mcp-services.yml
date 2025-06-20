@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  # Mock SecretsMCP for testing
+  mock-secrets-mcp:
+    image: python:3.9-slim
+    container_name: mock-secrets-mcp
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./mock-mcp-server.py:/app/server.py
+    working_dir: /app
+    command: >
+      sh -c "pip install fastapi uvicorn && 
+             python -c \"
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel
+import json
+
+app = FastAPI()
+
+class SecretRequest(BaseModel):
+    secret_name: str
+
+@app.get('/health')
+async def health():
+    return {'status': 'healthy', 'service': 'mock-secrets-mcp'}
+
+@app.post('/get_secret')
+async def get_secret(request: SecretRequest, x_api_key: str = Header(None)):
+    # Mock responses for testing
+    mock_secrets = {
+        'ANTHROPIC_API_KEY': 'mock-sk-ant-12345',
+        'OPENAI_API_KEY': 'mock-sk-openai-67890',
+        'TEST_SECRET': 'mock-test-value'
+    }
+    
+    if request.secret_name in mock_secrets:
+        return {
+            'secret_name': request.secret_name,
+            'value': mock_secrets[request.secret_name],
+            'status': 'success'
+        }
+    else:
+        return {
+            'secret_name': request.secret_name,
+            'status': 'error',
+            'message': f'Secret {request.secret_name} not found'
+        }
+\" > server.py &&
+             uvicorn server:app --host 0.0.0.0 --port 8004"
+    networks:
+      - ai-rails-network
+
+  # Mock CodebaseSummaryMCP for testing
+  mock-codebase-mcp:
+    image: python:3.9-slim
+    container_name: mock-codebase-mcp
+    ports:
+      - "8003:8003"
+    command: >
+      sh -c "pip install fastapi uvicorn && 
+             python -c \"
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+
+app = FastAPI()
+
+class QueryRequest(BaseModel):
+    query: str
+    path: str = '.'
+
+@app.get('/health')
+async def health():
+    return {'status': 'healthy', 'service': 'mock-codebase-mcp'}
+
+@app.post('/query')
+async def query(request: QueryRequest):
+    # Mock responses for testing
+    return {
+        'status': 'success',
+        'query': request.query,
+        'path': request.path,
+        'summary': f'Mock summary for {request.path}: This is a test response for the query about {request.query}',
+        'files_analyzed': 42,
+        'relevant_files': [
+            'src/main.py',
+            'src/utils.py',
+            'tests/test_main.py'
+        ]
+    }
+\" > server.py &&
+             uvicorn server:app --host 0.0.0.0 --port 8003"
+    networks:
+      - ai-rails-network
+
+  # Mock Brave Search MCP
+  mock-brave-search-mcp:
+    image: python:3.9-slim
+    container_name: mock-brave-search-mcp
+    ports:
+      - "8005:8005"
+    command: >
+      sh -c "pip install fastapi uvicorn && 
+             python -c \"
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+
+app = FastAPI()
+
+class SearchRequest(BaseModel):
+    search_query: str
+    num_results: int = 5
+
+@app.get('/health')
+async def health():
+    return {'status': 'healthy', 'service': 'mock-brave-search-mcp'}
+
+@app.post('/search')
+async def search(request: SearchRequest):
+    # Mock search results
+    return {
+        'status': 'success',
+        'query': request.search_query,
+        'results': [
+            {
+                'title': f'Result 1 for {request.search_query}',
+                'url': 'https://example.com/1',
+                'snippet': 'This is a mock search result snippet...'
+            },
+            {
+                'title': f'Result 2 for {request.search_query}',
+                'url': 'https://example.com/2',
+                'snippet': 'Another mock result with relevant information...'
+            }
+        ][:request.num_results]
+    }
+\" > server.py &&
+             uvicorn server:app --host 0.0.0.0 --port 8005"
+    networks:
+      - ai-rails-network
+
+  # Local Ollama instance (optional - comment out if you have Ollama installed locally)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-rails-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ai-rails-network
+
+networks:
+  ai-rails-network:
+    driver: bridge
+
+volumes:
+  ollama_data:

@@ -73,32 +73,81 @@ def load_mcp_definitions() -> dict:
 # --- Dynamic Prompt Builder ---
 def build_agent_prompt(agent_template_path: Path, tool_definitions: dict, additional_context: str = "") -> str:
     """
-    Reads an agent's system prompt template and dynamically injects tool definitions.
+    Reads an agent's system prompt template and dynamically injects tool definitions and common components.
     """
     try:
         with open(agent_template_path, "r") as f:
             template_content = f.read()
 
+        # Read common agent components
+        common_components_path = TEMPLATES_DIR / "agent" / "common_agent_components.md"
+        common_components_content = ""
+        try:
+            with open(common_components_path, "r") as f:
+                common_components_content = f.read()
+        except FileNotFoundError:
+            log_event("ERROR", f"Common agent components file not found: {common_components_path}", agent_role="Orchestrator")
+            # Continue without common components, but log the error
+
+
         tool_json_str = ""
+        tool_specific_guidance_str = ""
+        # Determine the agent's role from the template filename for filtering guidance
+        agent_role_slug = agent_template_path.stem.replace('_agent_system_prompt', '').replace('_system_prompt', '')
+        # Convert slug to a more readable format if needed for comparison with 'agent_role' in MCP JSON
+        agent_role_map = {
+            "planning": "Planning Agent",
+            "coder": "Coder Agent",
+            "unit_tester": "Unit Tester Agent",
+            "debugger": "Debugger Agent",
+            "documentation": "Documentation Agent",
+            "code_review": "Code Review Agent",
+            "refactor": "Refactor Agent",
+            "n8n_flow_creator": "n8n Flow Creator Agent",
+            "overseer": "Overseer Agent"
+        }
+        current_agent_role = agent_role_map.get(agent_role_slug, agent_role_slug.replace('_', ' ').title() + " Agent") # Default fallback
+
+
         if tool_definitions:
             tool_list = []
             for name, definition in tool_definitions.items():
-                # Only include tool_name, description, and request_schema
-                # Omit api_endpoint and response_format from prompt as agents don't use them directly
-                tool_info = {k: v for k, v in definition.items() if k in ["tool_name", "description", "request_schema"]}
-                tool_list.append(tool_info)
+                # Check access_control for the current agent's role
+                if current_agent_role in definition.get("access_control", {}):
+                    # Only include tool_name, description, and request_schema
+                    tool_info = {k: v for k, v in definition.items() if k in ["tool_name", "description", "request_schema"]}
+                    tool_list.append(tool_info)
+                    
+                    # Also collect agent_specific_guidance for this tool, if it exists for this agent's role
+                    if "agent_specific_guidance" in definition and current_agent_role in definition["agent_specific_guidance"]:
+                        tool_specific_guidance_str += f"\n### Guidance for {definition['tool_name']}:\n"
+                        tool_specific_guidance_str += definition["agent_specific_guidance"][current_agent_role] + "\n"
+
             tool_json_str = json.dumps(tool_list, indent=2)
 
-        # Replace the placeholder in the template
+        # First, inject common components
         full_prompt = template_content.replace(
-            "--- TOOL_DEFINITIONS_START ---\n// This section will be dynamically injected by ai_rails_backend.py\n---\n",
-            f"--- TOOL_DEFINITIONS_START ---\n{tool_json_str}\n"
+            "--- COMMON_AGENT_COMPONENTS_PLACEHOLDER ---",
+            common_components_content
         )
-        full_prompt = full_prompt.replace(
-            "\n--- TOOL_DEFINITIONS_END ---",
-            "\n--- TOOL_DEFINITIONS_END ---"
+
+        # Then, replace the placeholder for tool definitions within the common components
+        # We need to use re.escape here because the placeholder contains special regex characters
+        full_prompt = re.sub(
+            r"--- TOOL_DEFINITIONS_START ---\n// This section will be dynamically injected by ai_rails_backend.py\n// Do NOT modify or remove the '--- TOOL_DEFINITIONS_START ---' and '--- TOOL_DEFINITIONS_END ---' markers.\n--- TOOL_DEFINITIONS_END ---",
+            f"--- TOOL_DEFINITIONS_START ---\n{tool_json_str}\n--- TOOL_DEFINITIONS_END ---",
+            full_prompt,
+            flags=re.DOTALL # Ensure . matches newlines
         )
         
+        # Finally, replace the placeholder for tool-specific guidance within the common components
+        full_prompt = re.sub(
+            r"--- TOOL_SPECIFIC_GUIDANCE_START ---\n// This section will be dynamically injected by ai_rails_backend.py with\n// agent_specific_guidance from the MCP definitions that you have access to.\n// DO NOT EDIT THIS SECTION MANUALLY.\n--- TOOL_SPECIFIC_GUIDANCE_END ---",
+            f"--- TOOL_SPECIFIC_GUIDANCE_START ---\n{tool_specific_guidance_str}\n--- TOOL_SPECIFIC_GUIDANCE_END ---",
+            full_prompt,
+            flags=re.DOTALL # Ensure . matches newlines
+        )
+
         # Append any additional context at the end
         if additional_context:
             full_prompt += f"\n\n--- ADDITIONAL CONTEXT ---\n{additional_context}\n--------------------------"
@@ -247,16 +296,22 @@ def engage_agent(
                 is_sensitive_secret = False
                 if tool_name == "SecretsMCP":
                     secret_name = parameters.get("secret_name", "")
+                    project_context = os.getenv("AI_RAILS_PROJECT_NAME")
+                    
                     if secret_name in SENSITIVE_SECRETS:
                         is_sensitive_secret = True
                         print(f"\n--- !!! SENSITIVE SECRET REQUEST !!! ---")
                         print(f"⚠️  The {agent_role} has requested access to a SENSITIVE secret:")
                         print(f"Secret Name: {secret_name}")
+                        if project_context:
+                            print(f"Project Context: {project_context}")
                         print(f"This secret is classified as SENSITIVE and requires explicit approval.")
                         print(f"Explanation: {explanation}")
                     else:
                         print(f"\n--- HUMAN INTERVENTION REQUIRED ---")
                         print(f"The {agent_role} has requested secret: {secret_name}")
+                        if project_context:
+                            print(f"Project Context: {project_context}")
                         print(f"Explanation: {explanation}")
                 else:
                     print(f"\n--- !!! HUMAN INTERVENTION REQUIRED !!! ---")

@@ -1,0 +1,69 @@
+{
+  "tool_name": "BraveSearchMCP",
+  "description": "Performs web searches using Brave Search (or similar) to gather general information, research best practices, or find solutions to problems not covered by internal documentation. Useful for broad knowledge retrieval.",
+  "api_endpoint": "http://10.0.0.2:8005/search",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "search_query": {
+        "type": "string",
+        "description": "The query string for the web search."
+      },
+      "num_results": {
+        "type": "integer",
+        "description": "Optional: The desired number of search results to return (e.g., 5, 10). Defaults to 5."
+      },
+      "time_range": {
+        "type": "string",
+        "description": "Optional: Filters results by time range (e.g., 'past_hour', 'past_day', 'past_week', 'past_month', 'past_year')."
+      }
+    },
+    "required": ["search_query"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "snippet": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A list of search results, each with a title, URL, and short snippet."
+      }
+    }
+  },
+  "access_control": {
+    "Planning Agent": "free_access",
+    "Coder Agent": "free_access",
+    "Unit Tester Agent": "free_access",
+    "Debugger Agent": "free_access",
+    "Documentation Agent": "free_access",
+    "Code Review Agent": "free_access",
+    "Refactor Agent": "free_access",
+    "n8n Flow Creator Agent": "free_access"
+  },
+  "agent_specific_guidance": {
+    "Planning Agent": "When you need to research new technologies, market trends, or common architectural patterns that are not in your internal knowledge base, use BraveSearchMCP. Formulate a precise 'search_query' to get relevant external context.",
+    "Coder Agent": "If you encounter a challenging coding problem, an unfamiliar error message, or need to find diverse coding examples for a specific pattern, use this MCP to perform a web search. Be as specific as possible in your 'search_query'.",
+    "Unit Tester Agent": "When generating tests that require understanding external libraries or complex behaviors not immediately obvious, use BraveSearchMCP to find documentation or examples. Use a focused 'search_query' to get the most relevant test insights.",
+    "Debugger Agent": "For unfamiliar error messages, obscure bug symptoms, or to find common solutions/workarounds for known issues, use BraveSearchMCP. Provide the error message or symptoms as your 'search_query'.",
+    "Documentation Agent": "To research general technical concepts, industry standards, or to find examples of how other projects document similar features, use BraveSearchMCP to enrich your documentation content. Aim for clear and concise 'search_query' values.",
+    "Code Review Agent": "If you are reviewing code that implements an unfamiliar algorithm, uses a less common library, or potentially contains a known vulnerability, use BraveSearchMCP to quickly find relevant information or security advisories by searching for 'CVE-[year]-[number]' or similar.",
+    "Refactor Agent": "When considering alternative design patterns or refactoring strategies, use BraveSearchMCP to research industry best practices, performance implications, or comparative analysis of different approaches.",
+    "n8n Flow Creator Agent": "If you need to find documentation for a specific n8n node, or examples of common n8n workflows for a given integration (e.g., 'n8n webhook to Notion integration example'), use BraveSearchMCP."
+  }
+}

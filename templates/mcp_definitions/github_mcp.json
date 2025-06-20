@@ -1,0 +1,82 @@
+{
+  "tool_name": "GitHubMCP",
+  "description": "Interacts with GitHub repositories to retrieve file content, list directories, search code, or manage pull requests and issues. Supports both read-only and permissioned write operations.",
+  "api_endpoint": "http://10.0.0.2:8006",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get_file_content", "list_directory", "search_code", "create_pull_request", "add_comment_to_issue"],
+        "description": "The specific action to perform on GitHub."
+      },
+      "owner": {
+        "type": "string",
+        "description": "The GitHub repository owner (user or organization)."
+      },
+      "repo": {
+        "type": "string",
+        "description": "The GitHub repository name."
+      },
+      "path": {
+        "type": "string",
+        "description": "The file or directory path within the repository (for get_file_content, list_directory)."
+      },
+      "query": {
+        "type": "string",
+        "description": "The search query (for search_code) or content for comments/PRs."
+      },
+      "issue_number": {
+        "type": "integer",
+        "description": "The issue number (for add_comment_to_issue)."
+      },
+      "base_branch": {
+        "type": "string",
+        "description": "The base branch for a pull request (for create_pull_request)."
+      },
+      "head_branch": {
+        "type": "string",
+        "description": "The head branch for a pull request (for create_pull_request)."
+      },
+      "title": {
+        "type": "string",
+        "description": "The title for a pull request or comment (for create_pull_request, add_comment_to_issue)."
+      },
+      "body": {
+        "type": "string",
+        "description": "The body content for a pull request or comment (for create_pull_request, add_comment_to_issue)."
+      }
+    },
+    "required": ["action", "owner", "repo"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "data": {
+        "type": ["string", "array", "object"],
+        "description": "The result of the GitHub operation (e.g., file content, list of files, search results, PR details)."
+      }
+    }
+  },
+  "access_control": {
+    "Planning Agent": "free_access",
+    "Coder Agent": "permissioned_access",
+    "Unit Tester Agent": "free_access",
+    "Debugger Agent": "free_access",
+    "Documentation Agent": "free_access",
+    "Code Review Agent": "permissioned_access",
+    "Refactor Agent": "permissioned_access"
+  },
+  "agent_specific_guidance": {
+    "Planning Agent": "To understand the structure of an existing repository or to reference code from another project for planning, use GitHubMCP with 'get_file_content' or 'list_directory'. You have read-only access.",
+    "Coder Agent": "To fetch existing code files for modification or to search for specific code patterns within a repository, use 'get_file_content' or 'search_code'. If you need to propose a 'create_pull_request' or 'add_comment_to_issue', remember this requires human approval.",
+    "Unit Tester Agent": "Before writing tests for code in a specific GitHub repository, use 'get_file_content' to retrieve the source code. You have read-only access.",
+    "Debugger Agent": "To access log files or specific configuration files directly from a GitHub repository for debugging purposes, use 'get_file_content'. You have read-only access.",
+    "Documentation Agent": "To pull in code snippets, file lists, or project READMEs from a GitHub repository for documentation, use 'get_file_content' or 'list_directory'. You have read-only access.",
+    "Code Review Agent": "To fetch the exact version of code from a specific branch or pull request for review, use 'get_file_content'. If you propose to 'add_comment_to_issue' or similar actions, this requires human approval.",
+    "Refactor Agent": "To retrieve the codebase to be refactored from a GitHub repository, use 'get_file_content'. If your refactoring plan involves proposing changes back to the repository (e.g., 'create_pull_request'), this is a permissioned action requiring human approval."
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "tool_name": "GrafanaMCP",
+  "description": "Accesses Grafana dashboards and metrics via its HTTP API for monitoring, performance analysis, and anomaly detection. Provides read-only access to visualization data.",
+  "api_endpoint": "http://192.168.1.3:3000/api",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get_dashboard", "query_metric"],
+        "description": "The type of Grafana operation."
+      },
+      "dashboard_uid": {
+        "type": "string",
+        "description": "The UID of the Grafana dashboard to retrieve."
+      },
+      "panel_id": {
+        "type": "integer",
+        "description": "Optional: The ID of a specific panel within the dashboard."
+      },
+      "metric_query": {
+        "type": "string",
+        "description": "The PromQL or other query language string for a metric (for query_metric)."
+      },
+      "from": {
+        "type": "string",
+        "description": "Start time in ISO format (e.g., '2025-06-18T00:00:00Z')."
+      },
+      "to": {
+        "type": "string",
+        "description": "End time in ISO format."
+      }
+    },
+    "required": ["action"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "data": {
+        "type": ["string", "array", "object"],
+        "description": "The retrieved dashboard JSON, metric data, or error message."
+      }
+    }
+  },
+  "access_control": {
+    "Overseer Agent": "free_access",
+    "Debugger Agent": "free_access",
+    "Planning Agent": "free_access"
+  },
+  "agent_specific_guidance": {
+    "Overseer Agent": "Continuously monitor system performance. Use GrafanaMCP with 'query_metric' to fetch key performance indicators (KPIs) and detect anomalies. If unusual patterns are observed, generate an alert for the human. You can also use 'get_dashboard' to reference overall system health.",
+    "Debugger Agent": "When diagnosing performance-related bugs, use GrafanaMCP to 'query_metric' for specific time ranges or 'get_dashboard' to examine application health during the incident. This read-only access helps you identify performance bottlenecks.",
+    "Planning Agent": "When planning new features or architectural changes, use GrafanaMCP to query existing system performance metrics ('query_metric') to understand current loads and identify potential bottlenecks or areas for improvement."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "tool_name": "SentryMCP",
+  "description": "Integrates with Sentry to retrieve error tracking and performance monitoring data. Allows agents to query for recent events, specific issues, or aggregate statistics.",
+  "api_endpoint": "https://sentry.io/api/0/projects/{organization_slug}/{project_slug}/",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["get_latest_events", "get_issue_details", "get_event_details"],
+        "description": "The specific Sentry API action."
+      },
+      "organization_slug": {
+        "type": "string",
+        "description": "The slug of the Sentry organization."
+      },
+      "project_slug": {
+        "type": "string",
+        "description": "The slug of the Sentry project."
+      },
+      "issue_id": {
+        "type": "string",
+        "description": "The ID of the Sentry issue (for get_issue_details)."
+      },
+      "event_id": {
+        "type": "string",
+        "description": "The ID of a specific Sentry event (for get_event_details)."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Optional: Number of events to retrieve (for get_latest_events). Defaults to 10."
+      }
+    },
+    "required": ["action", "organization_slug", "project_slug"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string"
+      },
+      "data": {
+        "type": "object",
+        "description": "The JSON data retrieved from Sentry."
+      }
+    }
+  },
+  "access_control": {
+    "Overseer Agent": "free_access",
+    "Debugger Agent": "free_access"
+  },
+  "agent_specific_guidance": {
+    "Overseer Agent": "Regularly check Sentry for new error occurrences or spikes in existing errors. Use 'get_latest_events' to monitor the health of the application. If critical errors are detected, formulate an alert for the human operator.",
+    "Debugger Agent": "When diagnosing a bug reported through Sentry, use 'get_issue_details' with the 'issue_id' to retrieve comprehensive error reports, stack traces, and relevant context. You can also use 'get_event_details' for a specific event."
+  }
+}

@@ -31,6 +31,8 @@ def test_secret_retrieval():
     if result.get("status") == "success":
         print(f"✅ Successfully retrieved secret: {result.get('secret_name')}")
         print(f"   Value: {result.get('value')}")
+        if result.get("source"):
+            print(f"   Source: {result.get('source')}")
     else:
         print(f"❌ Failed to retrieve secret: {result.get('message')}")
         
@@ -91,15 +93,44 @@ def test_invalid_auth():
         
     return result
 
+def test_project_scoped_secret():
+    """Test retrieving a project-scoped secret"""
+    print("\n=== Testing Project-Scoped Secret ===")
+    
+    # Check if project context is set
+    project_name = os.getenv("AI_RAILS_PROJECT_NAME")
+    if project_name:
+        print(f"Project Context: {project_name}")
+    else:
+        print("No project context set (will use global secrets)")
+    
+    # Test with explicit project name
+    result = call_mcp("SecretsMCP", {
+        "secret_name": "OPENAI_API_KEY",
+        "project_name": "ai-rails"
+    })
+    
+    if result.get("status") == "success":
+        print(f"✅ Successfully retrieved project-scoped secret")
+        print(f"   Secret: {result.get('secret_name')}")
+        print(f"   Source: {result.get('source', 'unknown')}")
+        print(f"   Value: [REDACTED - {len(result.get('value', ''))} characters]")
+    else:
+        print(f"❌ Failed to retrieve project secret: {result.get('message')}")
+        
+    return result
+
 if __name__ == "__main__":
     print("=== SecretsMCP Integration Test ===")
     print(f"SecretsMCP URL: {os.getenv('SECRETS_MCP_URL')}")
     print(f"Auth Token: {'SET' if os.getenv('AI_RAILS_SECRETS_MCP_AUTH_TOKEN') else 'NOT SET'}")
+    print(f"Project Context: {os.getenv('AI_RAILS_PROJECT_NAME', 'NOT SET')}")
     
     # Run tests
     test_secret_retrieval()
     test_sensitive_secret()
     test_nonexistent_secret()
+    test_project_scoped_secret()
     test_invalid_auth()
     
     print("\n=== Test Complete ===")

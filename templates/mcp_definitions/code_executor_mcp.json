@@ -1,0 +1,63 @@
+{
+  "tool_name": "CodeExecutorMCP",
+  "description": "Executes provided code in a safe, isolated sandbox environment (e.g., Docker container). Returns stdout, stderr, and execution status. Requires explicit human approval for every execution.",
+  "api_endpoint": "http://10.0.0.2:8010",
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "language": {
+        "type": "string",
+        "description": "The programming language of the code (e.g., 'python', 'javascript', 'java')."
+      },
+      "code": {
+        "type": "string",
+        "description": "The code string to be executed."
+      },
+      "test_cases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional: An array of test inputs to run against the code."
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Optional: Maximum execution time in seconds. Defaults to 10."
+      }
+    },
+    "required": ["language", "code"]
+  },
+  "response_format": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "description": "Execution status (e.g., 'success', 'timeout', 'error')."
+      },
+      "stdout": {
+        "type": "string",
+        "description": "Standard output from code execution."
+      },
+      "stderr": {
+        "type": "string",
+        "description": "Standard error from code execution."
+      },
+      "execution_time_ms": {
+        "type": "integer",
+        "description": "Time taken for execution in milliseconds."
+      }
+    }
+  },
+  "access_control": {
+    "Unit Tester Agent": "permissioned_access",
+    "Debugger Agent": "permissioned_access",
+    "Coder Agent": "permissioned_access",
+    "Refactor Agent": "permissioned_access"
+  },
+  "agent_specific_guidance": {
+    "Unit Tester Agent": "After generating test code, you **MUST** propose using CodeExecutorMCP to run the tests and verify their correctness. Provide the 'language' and the 'code' of your tests. This action requires explicit human approval for safety.",
+    "Debugger Agent": "When you have a proposed code fix and want to quickly verify its behavior or reproduce a bug with a minimal code snippet, use CodeExecutorMCP. Provide the 'language' and the 'code' to execute. This is a sensitive action requiring human approval.",
+    "Coder Agent": "If you want to verify the output of a small code snippet or test a specific function's behavior during development, you may propose using CodeExecutorMCP. This is a sensitive action requiring human approval.",
+    "Refactor Agent": "After refactoring a small, isolated code block, you may propose using CodeExecutorMCP to run quick sanity checks or verify that the refactored code maintains its original behavior. This is a sensitive action requiring human approval."
+  }
+}
