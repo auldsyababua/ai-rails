@@ -33,12 +33,15 @@
       }
     },
     "access_control": {
-      "Planning Agent": "free_access",
-      "Coder Agent": "free_access",
-      "Unit Tester Agent": "free_access",
-      "Debugger Agent": "free_access",
-      "Refactor Agent": "free_access",
-      "n8n Flow Creator Agent": "free_access"
+      "Planning Agent": true,
+      "Coder Agent": true,
+      "Unit Tester Agent": true,
+      "Debugger Agent": true,
+      "Documentation Agent": true,
+      "Code Review Agent": true,
+      "Refactor Agent": true,
+      "n8n Flow Creator Agent": true,
+      "Overseer Agent": true
     },
     "agent_specific_guidance": {
       "Planning Agent": "Use this MCP to break down complex project requirements into detailed, sequential steps, considering architectural implications and risk assessments. Clearly state the 'problem_statement' and provide 'context' related to the project scope. Request the 'desired_output_format' as a comprehensive plan with distinct phases.",

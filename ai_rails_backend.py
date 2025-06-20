@@ -39,6 +39,47 @@ SENSITIVE_SECRETS = [
 # Ensure log directory exists
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+# --- Environment Validation ---
+def validate_environment():
+    """Validate that required environment variables are set."""
+    required_vars = [
+        ("OLLAMA_BASE_URL", "URL for your Ollama LLM server"),
+        ("AI_RAILS_SECRETS_MCP_AUTH_TOKEN", "Authentication token for SecretsMCP")
+    ]
+    
+    missing = []
+    warnings = []
+    
+    for var, description in required_vars:
+        if not os.getenv(var):
+            missing.append(f"  - {var}: {description}")
+    
+    # Check for optional but recommended variables
+    optional_vars = [
+        ("SECRETS_MCP_URL", "SecretsMCP service URL"),
+        ("CODEBASE_SUMMARY_MCP_URL", "CodebaseSummaryMCP service URL")
+    ]
+    
+    for var, description in optional_vars:
+        if not os.getenv(var):
+            warnings.append(f"  - {var}: {description}")
+    
+    if missing:
+        print("ERROR: Missing required environment variables:")
+        for item in missing:
+            print(item)
+        print("\nPlease set these in your .env file or environment")
+        print("See .env.example for reference")
+        return False
+    
+    if warnings:
+        print("WARNING: Missing optional environment variables:")
+        for item in warnings:
+            print(item)
+        print("\nSome features may not work without these settings")
+    
+    return True
+
 # --- Logging Function ---
 def log_event(event_type: str, message: str, agent_role: str = "Orchestrator", session_id: str = "default", llm_model: str = "N/A", details: dict = None):
     """Logs an event to the ai-rails.log file."""
@@ -80,7 +121,7 @@ def build_agent_prompt(agent_template_path: Path, tool_definitions: dict, additi
             template_content = f.read()
 
         # Read common agent components
-        common_components_path = TEMPLATES_DIR / "agent" / "common_agent_components.md"
+        common_components_path = TEMPLATES_DIR / "agents" / "common_agent_components.md"
         common_components_content = ""
         try:
             with open(common_components_path, "r") as f:
@@ -224,7 +265,7 @@ def engage_agent(
     """
     log_event("AGENT_ENGAGE", f"Engaging {agent_role} agent.", agent_role=agent_role, session_id=session_id)
 
-    agent_template_path = TEMPLATES_DIR / "agent" / agent_template_filename
+    agent_template_path = TEMPLATES_DIR / "agents" / agent_template_filename
     
     # Load all MCP definitions to inject into the agent's prompt
     all_mcp_definitions = load_mcp_definitions()
@@ -550,16 +591,47 @@ def main_workflow_loop(
     log_event("WORKFLOW_END", f"AI Rails workflow ended for {project_name} ({workflow_type}).", session_id=session_id)
 
 if __name__ == "__main__":
-    # This block will be used if ai_rails_backend.py is run directly for testing.
-    # When integrated with run_workflow.sh, main_workflow_loop will be called directly.
-    print("This script is usually called by run_workflow.sh. Running in standalone test mode.")
-    # Example: Simulating a new project kickoff
-    # main_workflow_loop(project_name="test-project", workflow_type="new_project")
-
-    # Example: Simulating an execution phase
-    # Assuming 'my-test-plan.md' exists in output/execution_plans/my-test-project/
-    # test_plan_path = OUTPUT_DIR / "execution_plans" / "my-test-project" / "my-test-plan.md"
-    # main_workflow_loop(project_name="my-test-project", workflow_type="execution", plan_path=test_plan_path)
-
-    # For now, just a placeholder. The real entry point will be run_workflow.sh
-    print("Please use run_workflow.sh to start the AI Rails system.")
+    # Parse command-line arguments from run_workflow.sh
+    if len(sys.argv) < 3:
+        print("Usage: python ai_rails_backend.py <project_name> <workflow_type> [plan_path]")
+        print("  workflow_type: new_project, feature_update, or execution")
+        print("  plan_path: required for execution workflow")
+        sys.exit(1)
+    
+    project_name = sys.argv[1]
+    workflow_type = sys.argv[2]
+    
+    # For execution workflow, we need a plan path
+    if workflow_type == "execution":
+        if len(sys.argv) < 4:
+            print("Error: Execution workflow requires a plan path as third argument")
+            sys.exit(1)
+        plan_path = Path(sys.argv[3])
+        if not plan_path.exists():
+            print(f"Error: Plan file does not exist: {plan_path}")
+            sys.exit(1)
+    else:
+        plan_path = None
+    
+    # Validate workflow type
+    valid_workflows = ["new_project", "feature_update", "execution"]
+    if workflow_type not in valid_workflows:
+        print(f"Error: Invalid workflow type '{workflow_type}'")
+        print(f"Valid types: {', '.join(valid_workflows)}")
+        sys.exit(1)
+    
+    # Validate environment before starting
+    if not validate_environment():
+        sys.exit(1)
+    
+    try:
+        # Run the main workflow
+        main_workflow_loop(project_name, workflow_type, plan_path)
+    except KeyboardInterrupt:
+        print("\nWorkflow interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

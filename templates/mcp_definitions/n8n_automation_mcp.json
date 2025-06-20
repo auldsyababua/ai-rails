@@ -16,5 +16,19 @@
       },
       "required": ["workflow_name"]
     },
-    "response_format": "JSON detailing the status or output of the n8n workflow execution. Example: {\"status\": \"success\", \"message\": \"Workflow triggered\", \"n8n_response\": {}}"
+    "response_format": "JSON detailing the status or output of the n8n workflow execution. Example: {\"status\": \"success\", \"message\": \"Workflow triggered\", \"n8n_response\": {}}",
+    "access_control": {
+      "Planning Agent": false,
+      "Coder Agent": false,
+      "Unit Tester Agent": false,
+      "Debugger Agent": false,
+      "Documentation Agent": false,
+      "Code Review Agent": false,
+      "Refactor Agent": false,
+      "n8n Flow Creator Agent": true,
+      "Overseer Agent": false
+    },
+    "agent_specific_guidance": {
+      "n8n Flow Creator Agent": "Use this to trigger n8n workflows you've designed. Ensure the workflow_name matches exactly what's configured in n8n."
+    }
   }

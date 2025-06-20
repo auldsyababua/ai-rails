@@ -16,5 +16,25 @@
       },
       "required": ["query"]
     },
-    "response_format": "Markdown or text, depending on the query. Will be formatted clearly for LLM consumption."
+    "response_format": "Markdown or text, depending on the query. Will be formatted clearly for LLM consumption.",
+    "access_control": {
+      "Planning Agent": true,
+      "Coder Agent": true,
+      "Unit Tester Agent": true,
+      "Debugger Agent": true,
+      "Documentation Agent": true,
+      "Code Review Agent": true,
+      "Refactor Agent": true,
+      "n8n Flow Creator Agent": false,
+      "Overseer Agent": true
+    },
+    "agent_specific_guidance": {
+      "Planning Agent": "Use this to understand the current project structure and existing patterns before creating plans.",
+      "Coder Agent": "Query existing code patterns, conventions, and similar implementations before writing new code.",
+      "Unit Tester Agent": "Examine existing test patterns and test file structures to maintain consistency.",
+      "Debugger Agent": "Search for error patterns, logging mechanisms, and debug utilities in the codebase.",
+      "Documentation Agent": "Review existing documentation styles and structures before writing new docs.",
+      "Code Review Agent": "Analyze code patterns, best practices, and potential issues in the codebase.",
+      "Refactor Agent": "Study existing code architecture and patterns to suggest appropriate refactoring."
+    }
   }
